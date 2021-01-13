@@ -1,3 +1,4 @@
+package Semester1;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -13,10 +14,10 @@ public class Ex10
 			list.add(fut);
 		} 
 		System.out.println("Waiting for result from callable threads...");
-		while(!list.get(0).isDone()) {
-		    System.out.println("Calculating...");
-		    Thread.sleep(300);
-		}
+//		while(!list.get(0).isDone()) {
+//		    System.out.println("Calculating...");
+//		    Thread.sleep(300);
+//		}
 		int sum = 0;
 		for(Future<Integer> fut : list){
 			System.out.println(fut.get());

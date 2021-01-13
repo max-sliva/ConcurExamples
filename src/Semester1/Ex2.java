@@ -1,3 +1,4 @@
+package Semester1;
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -7,7 +8,7 @@ public class Ex2 {
 		String[] threads = {"A", "B"}; 
 		Date currentDate=new Date();
 		long time1=currentDate.getTime();
-		ExecutorService executor = Executors.newFixedThreadPool(2);
+		ExecutorService executor = Executors.newFixedThreadPool(threads.length);
 		for (String string : threads) {
 			executor.execute(new SimpleRunnable(string));
 		} 

@@ -1,12 +1,13 @@
+package Semester1;
 import java.util.Date;
 import java.util.concurrent.CountDownLatch;
 
-public class SimpleRunnable5 implements Runnable {
+public class SimpleRunnable4 implements Runnable {
 	private String s;
 	private int timeout;
 	CountDownLatch latch;
 	
-	public SimpleRunnable5(String str, int timeout, CountDownLatch lat) {
+	public SimpleRunnable4(String str, int timeout, CountDownLatch lat) {
 		s = str;
 		this.timeout = timeout;
 		latch = lat;
@@ -21,7 +22,7 @@ public class SimpleRunnable5 implements Runnable {
 			currentDate=new Date();
 			time2=currentDate.getTime();
 			System.out.println(s+" "+(time2-time1));
-			latch.countDown();   //<----
+			latch.countDown();
 			try {
 				Thread.sleep(500);
 			} catch (InterruptedException e) {

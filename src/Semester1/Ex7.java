@@ -1,3 +1,4 @@
+package Semester1;
 import java.util.*;
 import java.util.concurrent.*;
  
@@ -6,10 +7,10 @@ public class Ex7
     public static void main(String[] args) {
         Runnable limitedCall = new Runnable() {
             final Random rand = new Random();
-            final Semaphore available = new Semaphore(3);
+            final Semaphore available = new Semaphore(1);
             int count = 0;
             public void run() {
-                int time = rand.nextInt(10);
+                int time = rand.nextInt(5);
                 int num = count++;
                 try {
                     available.acquire();
