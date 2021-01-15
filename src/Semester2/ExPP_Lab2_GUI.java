@@ -19,23 +19,25 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 
 public class ExPP_Lab2_GUI {
-
+	static JTextArea centerText = new JTextArea("Ready!");
+	static int n = 0;
+	static int mas[];
 	public static void main(String[] args) throws InterruptedException, ExecutionException{
 		JFrame window = new JFrame("PPWindow");
 		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setNorth(window);
-		JTextArea centerText = new JTextArea("Ready!");
 		Font newFont = centerText.getFont();
 		newFont=newFont.deriveFont(20.0f);
 		centerText.setFont(newFont);
 		centerText.setBorder(BorderFactory.createLineBorder(Color.GRAY, 5));
-		window.add(centerText, BorderLayout.CENTER);
+		window.add(new JScrollPane(centerText), BorderLayout.CENTER);
 		JLabel stateLabel = new JLabel("0%");
 		window.add(stateLabel, BorderLayout.SOUTH);
 		
@@ -44,44 +46,6 @@ public class ExPP_Lab2_GUI {
 		window.setSize(500, 300);
 		window.setMinimumSize(window.getSize());
 		window.setLocation(window.getX()-window.getWidth()/2, window.getY()-window.getHeight()/2); 
-//		int n = 0;
-//		int mas[] = new int[n];
-//		Random random = new Random();
-//		int s = 0;
-//		for (int i = 0; i < mas.length; i++) {
-//			mas[i] = random.nextInt(10);
-//			System.out.print(" "+mas[i]);
-//			s+=mas[i];
-//		} 
-//		System.out.println();
-//		System.out.println("sequense sum = "+s);
-//		System.out.print("thrCount = ");
-//		int thrCount = in.nextInt();
-//		int partArraySize = n / thrCount;
-//		int iend=partArraySize;  //нижняя граница для формирования частичных массивов 
-//		
-//		ExecutorService executor = Executors.newFixedThreadPool(thrCount);
-//		List<Future<Integer>> list = new ArrayList<Future<Integer>>();
-//		for (int i = 0; i<thrCount; i++) {
-//			int masPart[]=new int[partArraySize]; //создаем временный массив
-//			for (int j = 0; j < masPart.length; j++) {//записываем в него элементы из главного массива
-//				masPart[j]=mas[j+iend*i]; 
-//			}
-//			Future<Integer> fut = executor.submit(new CallableForSum(masPart));
-//			list.add(fut);
-//		} 
-//		System.out.println("Waiting for result from callable threads...");
-//		while(!list.get(0).isDone()) {
-//		    System.out.println("Calculating...");
-//		    Thread.sleep(300);
-//		}
-//		int sum = 0;
-//		for(Future<Integer> fut : list){
-//			System.out.println(fut.get());
-//			sum = sum + fut.get();
-//		}
-//		System.out.println("parallel sum = "+sum);
-//		executor.shutdownNow();
 	}
 
 	private static void setNorth(JFrame window) {
@@ -109,10 +73,59 @@ public class ExPP_Lab2_GUI {
 		
 		Box hBox2 = new Box(BoxLayout.X_AXIS);
 		JButton norSumButton = new JButton("Normal sum");
+		norSumButton.addActionListener(l->{
+			centerText.append("\n");
+			n = Integer.parseInt(arrSize.getText());
+			mas = new int[Integer.parseInt(arrSize.getText())];
+			Random random = new Random();
+			int s = 0;
+			for (int i = 0; i < mas.length; i++) {
+				mas[i] = random.nextInt(10);
+				centerText.append(" "+mas[i]);
+				s+=mas[i];
+			} 
+			centerText.append("\nsequense sum = "+s);
+		});
 		norSumButton.setFont(newFont);
 		hBox2.add(norSumButton);
 		hBox2.add(Box.createHorizontalGlue());
 		JButton parSumButton = new JButton("Parallel sum");
+		parSumButton.addActionListener(l->{
+			int partArraySize = n / (Integer)thrCount.getValue();
+			int iend=partArraySize;  //нижняя граница для формирования частичных массивов 
+			
+			ExecutorService executor = Executors.newFixedThreadPool((Integer)thrCount.getValue());
+			List<Future<Integer>> list = new ArrayList<Future<Integer>>();
+			for (int i = 0; i<(Integer)thrCount.getValue(); i++) {
+				int masPart[]=new int[partArraySize]; //создаем временный массив
+				for (int j = 0; j < masPart.length; j++) {//записываем в него элементы из главного массива
+					masPart[j]=mas[j+iend*i]; 
+				}
+				Future<Integer> fut = executor.submit(new CallableForSum(masPart));
+				list.add(fut);
+			} 
+			centerText.append("\nWaiting for result from callable threads...");
+			while(!list.get(0).isDone()) {
+				centerText.append("\nCalculating...");
+			    try {
+					Thread.sleep(300);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+			int sum = 0;
+			for(Future<Integer> fut : list){
+				try {
+					centerText.append("\n"+fut.get());
+					sum = sum + fut.get();
+				} catch (InterruptedException | ExecutionException e) {
+					e.printStackTrace();
+				}
+			}
+			centerText.append("\nparallel sum = "+sum);
+			executor.shutdownNow();
+
+		});
 		parSumButton.setFont(newFont);
 		hBox2.add(parSumButton);
 
