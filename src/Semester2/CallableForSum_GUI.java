@@ -1,7 +1,6 @@
 package Semester2;
 import java.util.Arrays;
 import java.util.concurrent.Callable;
-
 import javax.swing.JLabel;
 import javax.swing.JProgressBar;
 
@@ -23,21 +22,22 @@ public class CallableForSum_GUI implements Callable<Integer> { //потоков�
 		for (int i = 0; i < arr.length; i++) { //цикл по частичному массиву текущего потока
 			sum += arr[i]; 		//суммируем элементы массива
 			Thread.sleep(1000);  //имитируем долгую работу
-			//условие для первого потока, которому передали прогресс-бар и лейбл
-			if (sumProgress!=null && (i+1)*100 / arr.length % 20 == 0 ) {
-				sumProgress.setValue(sumProgress.getValue()+20);
-				System.out.println(sumProgress.getValue());
-				prLabel.setText(sumProgress.getValue()+"%");	
-			}
+			//условие для первого потока, которому передали прогресс-бар и лейбл,
+			if (sumProgress!=null) //чтобы узнать, что ему передали прогресс-бар
+				if ((i+1)*100 / arr.length % 20 == 0 ) { //если достигли 20% от суммируемых элементов
+					sumProgress.setValue(sumProgress.getValue()+20); //меняем значение прогресс-бара
+					System.out.println(sumProgress.getValue()); //отладочный вывод
+					prLabel.setText(sumProgress.getValue()+"%");	//выводим процент на лейбл
+				}
 		}	
-		return sum;
+		return sum; //возвращаем сумму в основную программу
 	}
 	
-	public void setPrBar(JProgressBar prBar) {
+	public void setPrBar(JProgressBar prBar) { //метод для установки ссылки на прогресс-бар из интерфейса
 		sumProgress = prBar;
 	}
-	public void setPrLabel(JLabel prLab) {
+	
+	public void setPrLabel(JLabel prLab) {  //метод для установки ссылки на лейбл из интерфейса
 		prLabel = prLab;
 	}
-
 }

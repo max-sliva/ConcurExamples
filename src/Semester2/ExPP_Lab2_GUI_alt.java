@@ -27,14 +27,15 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 
-public class ExPP_Lab2_GUI {
+public class ExPP_Lab2_GUI_alt {
 	static JTextArea centerText = new JTextArea("Ready!"); //центральная текстовая область
 	static int n = 0; //кол-во эл-ов в массиве 
 	static int mas[];  //сам массив
 	static JProgressBar sumProgress;  //прогресс-бар
 	static JLabel stateLabel;  //лейбл с процентом прогресса
-	static CallableForSum_GUI firstCall; //один из объектов типа Callable для вычисления
+	static CallableForSum_GUI2_alt firstCall; //один из объектов типа Callable для вычисления
 	static int sumPar = 0; //для итоговой параллельной суммы 
+	static int partArraySize = 0;
 	public static void main(String[] args) {
 		JFrame window = new JFrame("PPWindow"); //основное окно
 		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -105,7 +106,7 @@ public class ExPP_Lab2_GUI {
 		hBox2.add(Box.createHorizontalGlue());   //вставляем в коробку пружину
 		JButton parSumButton = new JButton("Parallel sum");  //кнопка для параллельного суммирования массива
 		parSumButton.addActionListener(l->{  
-			int partArraySize = n / (Integer)thrCount.getValue();  //размер частичного массива для каждого потока
+			partArraySize = n / (Integer)thrCount.getValue();  //размер частичного массива для каждого потока
 			int iend=partArraySize;  //нижняя граница для формирования частичных массивов 
 			//создаем исполнитель для запуска n потоков
 			ExecutorService executor = Executors.newFixedThreadPool((Integer)thrCount.getValue());
@@ -116,14 +117,12 @@ public class ExPP_Lab2_GUI {
 					masPart[j]=mas[j+iend*i]; 
 				}
 				if (i==0) { //для первого потока
-					firstCall = new CallableForSum_GUI(masPart);  //создаем первый поток (отдельный класс, описан ниже)
-					firstCall.setPrBar(sumProgress);  //передаем ему прогресс-бар
-					firstCall.setPrLabel(stateLabel);  //и лейбл для вывода кол-ва процентов 
+					firstCall = new CallableForSum_GUI2_alt(masPart);  //создаем первый поток (отдельный класс, описан ниже)
 					Future<Integer> fut = executor.submit(firstCall); //создаем объект для будущего результата созданного потока
 					list.add(fut); //добавляем его в список
 				}
 				else { //для всех остальных потоков
-					Future<Integer> fut = executor.submit(new CallableForSum_GUI(masPart));
+					Future<Integer> fut = executor.submit(new CallableForSum_GUI2_alt(masPart));
 					list.add(fut);
 				}
 			} 
@@ -131,8 +130,23 @@ public class ExPP_Lab2_GUI {
 			centerText.append("\nCalculating...");
 			//создаем исполнитель для запуска отдельного потока-диспетчера
 			ExecutorService executor2 = Executors.newSingleThreadExecutor();
-			executor2.execute(() -> { //запускаем анонимный поток
-//				while  //для апдейта прогресс-бара из этого потока   
+			executor2.execute(() -> { //запускаем анонимный поток 
+				int i = 0;
+				int pred_i = 0;
+				while(!list.get(0).isDone()) { //для апдейта прогресс-бара из этого потока 
+					i = firstCall.getI();
+					if ((i+1)*100 / partArraySize % 20 == 0 && i!=pred_i) { //если достигли 20% от суммируемых элементов
+						sumProgress.setValue(sumProgress.getValue()+20); //меняем значение прогресс-бара
+						stateLabel.setText(sumProgress.getValue()+"%");	//выводим процент на лейбл
+						System.out.println("% = "+ sumProgress.getValue());
+						pred_i = i;
+					}
+				    try {
+						Thread.sleep(10);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
 				for(Future<Integer> fut : list){ //цикл по объектам с будущими результатами потоков
 					try {
 						centerText.append("\n"+fut.get());  //выводим результат потока
@@ -142,6 +156,8 @@ public class ExPP_Lab2_GUI {
 					}
 				}
 				centerText.append("\nparallel sum = "+sumPar); //выводим сумму массива в текстовую область
+				sumProgress.setValue(100); //меняем значение прогресс-бара
+				stateLabel.setText("100%");	//выводим процент на лейбл
 			});
 		});
 		parSumButton.setFont(newFont); //меняем шрифт кнопки 
