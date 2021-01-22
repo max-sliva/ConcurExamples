@@ -1,19 +1,16 @@
 package Semester2;
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Random;
-import java.util.Scanner;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -39,6 +36,8 @@ public class ExPP_Lab3_GUI {
 	static int partArraySize = 0;
 	static private int[] mainArray;
 	static private ArrayList<int[]> arrayParts;
+	static long time;
+	static Date currentDatePar;
 	public static void main(String[] args) {
 		JFrame window = new JFrame("PPWindow"); //основное окно
 		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -92,22 +91,74 @@ public class ExPP_Lab3_GUI {
 		Box hBox2 = new Box(BoxLayout.X_AXIS);  //еще коробка с горизонтальным размещением 
 		JButton norSortButton = new JButton("Normal sort"); //кнопка для обычного суммирования массива
 		norSortButton.addActionListener(l->{  //обработчик нажатия на кнопку
+			sumProgress.setValue(0);
+			stateLabel.setText("0%");
 			centerText.append("\n");  //переход на новую строку
 			n = Integer.parseInt(arrSize.getText()); //размер массива
 			mas = new int[n];  //выделяем память под массив
 			Random random = new Random();
 			int s = 0;  //для хранения суммы массива
 			for (int i = 0; i < mas.length; i++) { //цикл по всему массиву
-				mas[i] = random.nextInt(5)+1;  //рандомное значение элемента массива
+				mas[i] = random.nextInt(8)+1;  //рандомное значение элемента массива
 			} 
-			
-			centerText.append("\nsequense sort = "+s); //выводим сумму массива в текстовую область 
+			centerText.append("initial mas: ");
+			printMasToTxtPane(mas);
+
+			firstCall = new CallableForSort(mas.clone());  //создаем первый поток (отдельный класс, описан ниже)
+			centerText.append("sequense sort: "); //обозначаем результаты последовательной сортировки  
+			ExecutorService executor = Executors.newFixedThreadPool(2);
+			Future<int[]> fut = executor.submit(firstCall); //создаем объект для будущего результата созданного потока
+			executor.execute(() -> { //запускаем анонимный поток 
+				Date currentDate=new Date(); //замер времени
+				long time1=currentDate.getTime();
+				int i = 0;
+				int pred_i = 0;
+				System.out.println("mas size = "+mas.length);
+				int tenthPart = mas.length / 10;
+				while(!fut.isDone()) { //для апдейта прогресс-бара из этого потока 
+					i = firstCall.getI();
+					if ((i+1)-pred_i>=tenthPart) { //если достигли 10% от кол-ва элементов
+						sumProgress.setValue(sumProgress.getValue()+10); //меняем значение прогресс-бара
+						stateLabel.setText(sumProgress.getValue()+"%");	//выводим процент на лейбл
+						System.out.println("i = "+i+", % = "+ sumProgress.getValue());
+						pred_i = i;
+					}
+				    try {
+						Thread.sleep(10);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+				sumProgress.setValue(100); //меняем значение прогресс-бара
+				stateLabel.setText(sumProgress.getValue()+"%");	//выводим процент на лейбл
+				System.out.println("% = "+ sumProgress.getValue());
+
+				int masSorted[] = null;
+				try {
+					masSorted = fut.get(); //добавляем его в общую сумму
+				} catch (InterruptedException | ExecutionException e) {
+						e.printStackTrace();
+				}			
+				currentDate=new Date(); //замер времени
+				long time2=currentDate.getTime();
+				time=time2-time1;	
+				printMasToTxtPane(masSorted);  //выводим результат потока
+				centerText.append("sequence time = "+time);
+				centerText.append("\n_________________________");				
+			});
 		});
 		norSortButton.setFont(newFont);   //меняем шрифт кнопки
 		hBox2.add(norSortButton);  //вставляем кнопку в коробку 
 		hBox2.add(Box.createHorizontalGlue());   //вставляем в коробку пружину
 		JButton parSortButton = new JButton("Parallel sort");  //кнопка для параллельного суммирования массива
-		parSortButton.addActionListener(l->{  
+		parSortButton.addActionListener(l->{ 
+			sumProgress.setValue(0);
+			stateLabel.setText("0%");
+			centerText.append("\ninitial mas: ");
+			printMasToTxtPane(mas);
+			currentDatePar=new Date(); //замер времени
+			long time1=currentDatePar.getTime();
+
 			arrayParts=new ArrayList<int[]>();
 			partArraySize = n / (Integer)thrCount.getValue();  //размер частичного массива для каждого потока
 			int iend=partArraySize;  //нижняя граница для формирования частичных массивов 
@@ -129,17 +180,18 @@ public class ExPP_Lab3_GUI {
 					list.add(fut);
 				}
 			} 
-			centerText.append("\nWaiting for result from callable threads...");
+			centerText.append("Waiting for result from callable threads...");
 			centerText.append("\nCalculating...");
 			//создаем исполнитель для запуска отдельного потока-диспетчера
 			ExecutorService executor2 = Executors.newSingleThreadExecutor();
 			executor2.execute(() -> { //запускаем анонимный поток 
 				int i = 0;
 				int pred_i = 0;
+				int tenthPart = mas.length / 10;
 				while(!list.get(0).isDone()) { //для апдейта прогресс-бара из этого потока 
 					i = firstCall.getI();
-					if ((i+1)*100 / partArraySize % 20 == 0 && i!=pred_i) { //если достигли 20% от суммируемых элементов
-						sumProgress.setValue(sumProgress.getValue()+20); //меняем значение прогресс-бара
+					if ((i+1)-pred_i>=tenthPart) { //если достигли 10% от кол-ва элементов
+						sumProgress.setValue(sumProgress.getValue()+10); //меняем значение прогресс-бара
 						stateLabel.setText(sumProgress.getValue()+"%");	//выводим процент на лейбл
 						System.out.println("% = "+ sumProgress.getValue());
 						pred_i = i;
@@ -152,16 +204,23 @@ public class ExPP_Lab3_GUI {
 				}
 				for(Future<int[]> fut : list){ //цикл по объектам с будущими результатами потоков
 					try {
-						centerText.append("\n"+fut.get());  //выводим результат потока
+						printMasToTxtPane(fut.get());  //выводим результат потока
 						arrayParts.add(fut.get()); //добавляем его в общую сумму
 					} catch (InterruptedException | ExecutionException e) {
 						e.printStackTrace();
 					}
 				}
 				mainArray=splitArrayParts();
-				centerText.append("\nparallel sort: "+Arrays.toString(mainArray)); //выводим сумму массива в текстовую область
+				centerText.append("parallel sort: ");
+				printMasToTxtPane(mainArray); //выводим сумму массива в текстовую область
+				currentDatePar=new Date(); //замер времени
+				long time2=currentDatePar.getTime();
+				time=time2-time1;	
+
 				sumProgress.setValue(100); //меняем значение прогресс-бара
 				stateLabel.setText("100%");	//выводим процент на лейбл
+				centerText.append("parallel time = "+time);
+				centerText.append("\n___________parallel end______________");				
 			});
 		});
 		parSortButton.setFont(newFont); //меняем шрифт кнопки 
@@ -171,6 +230,7 @@ public class ExPP_Lab3_GUI {
 		vBox.setBorder(BorderFactory.createLineBorder(Color.BLUE, 5)); //делаем границу коробки
 		window.add(vBox, BorderLayout.NORTH);  //вставляем коробку в верхнюю часть окна
 	}
+	
 	public static int[] splitArrayParts(){ //метод для объединения отсортированных частей массива в один массив
 		System.out.println();
 		int[] resultArray = new int[mas.length]; //массив с объединенными частями
@@ -197,12 +257,19 @@ public class ExPP_Lab3_GUI {
 					a[m]=resultArray[m];  //чтобы продолжить слияние
 				}
 		}
-//		System.out.println();
-//		for (int l = 0; l < resultArray.length; l++) {
-//			System.out.print(resultArray[l]+" "); 
-//		}
-//		System.out.println();
 		return resultArray; //возвращаем в качестве результата общий массив с объединенными частями
 	}
-
+	
+	static private void printMasToTxtPane(int mas[]){ //метод дл¤ вывода части массива в TextArea 
+		String masString = new String(); //будем выводить 10 элементов из центра массива
+		int ibeg=mas.length>10 ? mas.length/2-5 : 0; //начальный элемент дл¤ вывода
+		int iend=mas.length>10 ? mas.length/2+5 : mas.length; //конечный элемент дл¤ вывода
+		
+		for (int i = ibeg; i < iend; i++) {
+			System.out.print(mas[i]+" ");
+			masString=masString+mas[i]+" "; //формируем строку для вывода в TextArea
+		} 
+		System.out.println();
+		centerText.append("\n"+masString+"\n");
+	}
 }

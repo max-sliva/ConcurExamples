@@ -15,10 +15,10 @@ public class CallableForSort implements Callable<int[]> { //потоковый �
 	@Override
 	public int[] call() throws Exception { //основной метод, в котором происходит вся работа потока
 		//выводим частичный массив текущего потока	
-		System.out.println(Thread.currentThread().getName()+"init arr="+Arrays.toString(arr));
+//		System.out.println(Thread.currentThread().getName()+"init arr="+Arrays.toString(arr));
 		System.out.println(Thread.currentThread().getName()+" is calculating...");
 		arr=sort(arr); //вызываем метод сортировки
-		System.out.println(Thread.currentThread().getName()+"sorted arr="+Arrays.toString(arr));
+//		System.out.println(Thread.currentThread().getName()+"sorted arr="+Arrays.toString(arr));
 
 		return arr; //возвращаем массив в основную программу
 	}
